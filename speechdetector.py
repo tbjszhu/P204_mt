@@ -23,7 +23,11 @@ class Speechdetector:
         #tts = ALProxy("ALTextToSpeech", "10.77.3.19", 9559)
         self.asr_service = self.session.service("ALSpeechRecognition")
         self.memory = self.session.service("ALMemory")
-
+        
+        self.asr_service.pause(True)        
+        self.asr_service.removeAllContext()
+        self.asr_service.pause(False)
+        
         self.asr_service.setLanguage("English")
 
         # Example: Adds "yes", "no" and "please" to the vocabulary (without wordspotting)
@@ -35,9 +39,11 @@ class Speechdetector:
         # Start the speech recognition engine with user Test_ASR
         self.asr_service.subscribe("Speech")
         subscriber = self.memory.subscriber("WordRecognized")
-        subscriber.signal.connect(self.onWordRecognized)
+        self.connection_id = subscriber.signal.connect(self.onWordRecognized)
         print 'Speech recognition engine started'
         time.sleep(self.timeout)
+        
+        subscriber.signal.disconnect(self.connection_id)
         self.asr_service.unsubscribe("Speech")        
         return self.state
         
@@ -48,6 +54,8 @@ class Speechdetector:
         elif value[0] == "no" and value[1] > 0.4: 
             print "[Pepper INFO] Got Phrase: no"
             self.state = False
+        else:
+            print "[Pepper INFO] Got unkown Phrase"    
                     
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

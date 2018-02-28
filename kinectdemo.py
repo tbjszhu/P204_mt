@@ -8,6 +8,7 @@ if __name__ == '__main__':
     rospy.init_node('tf_lookup_example')
     listener = tf.TransformListener()
     rate = rospy.Rate(0.2)
+    print "start"
 
     while not rospy.is_shutdown():
         try:

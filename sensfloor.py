@@ -31,10 +31,30 @@ class Sensfloor():
                     x = float(split_res[1][0:4])
                     split_res = body.split("'y': ")
                     y = float(split_res[1][0:4])
-                    print "[Sensfloor INFO] x : %f, y : %f" % (x,y)
+                    #print "[Sensfloor INFO] x : %f, y : %f" % (x,y)
                     return [x, y]   
                       
-    def transformCartesianToPolar(self, x_org, y_org, x, y):                                
+    def transformCartesianToPolar_old(self, x_org, y_org, x, y):                                
+        distance = math.sqrt((x_org - x) * (x_org - x) + (y_org -y) * (y_org -y))
+        if x != x_org:
+            direction =  math.atan((y_org - y)/(x_org - x))
+        else:
+            direction = math.pi/2
+            
+        if direction > 0:
+            direction = math.pi/2 - direction
+        else:
+            direction = (-1) * (math.pi/2 + direction)       
+        #print "[Sensfloor INFO] distance : %f, direction : %f" % (distance, direction * 180 / math.pi) 
+        return [distance, direction]
+        
+    def transformCartesianToPolar(self, x_org, y_org, x, y):
+        #print x_org, y_org
+        x_org = x_org * 7.2 / 7.0
+        y_org = y_org * 4.2/8.5
+        x = x * 7.2 / 7.0
+        y = y * 4.2/8
+        #print x_org, y_org                                
         distance = math.sqrt((x_org - x) * (x_org - x) + (y_org -y) * (y_org -y))
         if x != x_org:
             direction =  math.atan((y_org - y)/(x_org - x))

@@ -35,5 +35,8 @@ if __name__ == '__main__':
     topic = "nao_robot/camera/top/camera/image_raw"
     text = "The assistance robot and smart house has detected a fall. To check, please see the video from this address " + link
     text = text + "/stream_viewer?topic=" + topic
-    mail = Mail(text)
-    mail.sendMail()
+    try:
+        mail = Mail(text)
+        mail.sendMail()
+    except:
+        print "mail send failed"        

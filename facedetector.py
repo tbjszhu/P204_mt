@@ -23,9 +23,11 @@ class HumanGreeter(object):
         self.session = app.session
         # Get the service ALMemory.
         self.memory = self.session.service("ALMemory")
+        
         # Connect the event callback.
         self.subscriber = self.memory.subscriber("FaceDetected")
-        self.subscriber.signal.connect(self.on_human_tracked)
+        self.connection_id = self.subscriber.signal.connect(self.on_human_tracked)
+        
         # Get the services ALTextToSpeech and ALFaceDetection.
         self.face_detection = self.session.service("ALFaceDetection")
         self.face_detection.subscribe("HumanGreeter")
@@ -33,22 +35,14 @@ class HumanGreeter(object):
         self.tts = ALProxy("ALTextToSpeech", "10.77.3.19", 9559)
         self.motion_service = self.session.service("ALMotion")
         self.got_pos = False
-        self.headposition = []
-        
-        
-        self.tracking_enabled = True
-
-        # Get the service ALFaceDetection.
-
-        self.face_service = self.session.service("ALFaceDetection")
-
-        print "Will set tracking to '%s' on the robot ..." % self.tracking_enabled
+        self.headposition = [0,0]
+        self.detection_count = 0
 
         # Enable or disable tracking.
-        self.face_service.enableTracking(self.tracking_enabled)
+        self.face_detection.setTrackingEnabled(True)
 
         # Just to make sure correct option is set.
-        print "Is tracking now enabled on the robot?", self.face_service.isTrackingEnabled()
+        print "Face Tracking Status:", self.face_detection.isTrackingEnabled()
         
 
     def on_human_tracked(self, value):
@@ -58,51 +52,45 @@ class HumanGreeter(object):
         if value == []:  # empty value when the face disappears
             self.got_face = False
         elif not self.got_face:  # only speak the first time a face appears
-            if not self.got_pos:
-                self.tts.say("Face detected")              
-            print "Face detected!"
-            
+            if not self.got_pos and self.detection_count == 1:
+                self.tts.say("Face detected")                          
             self.got_face = True
-                        
-            #self.motion_service.setStiffnesses("Head", 0.0)
-            # First Field = TimeStamp.
             timeStamp = value[0]
-            #print "TimeStamp is: " + str(timeStamp)
 
             # Second Field = array of face_Info's.
             faceInfoArray = value[1]
             if not self.got_pos:
                 self.got_pos = True
-                CameraPose_InTorsoFrame = value[2]
-                CameraPose_InRobotFrame = value[3]
-                CameraID = value[4]
-                self.headposition = [ CameraPose_InTorsoFrame[5], CameraPose_InTorsoFrame[4] ]
-                print "pitch %f, yaw %f" % (CameraPose_InTorsoFrame[4], CameraPose_InTorsoFrame[5])
-                names      = ["HeadYaw", "HeadPitch"]
-                angleLists = [[CameraPose_InTorsoFrame[5]], [CameraPose_InTorsoFrame[4]]]
-                times      = [[1.0], [ 1.0]]
-                isAbsolute = True
-                self.motion_service.angleInterpolation(names, angleLists, times, isAbsolute, _async=False)
+            CameraPose_InTorsoFrame = value[2]
+            CameraPose_InRobotFrame = value[3]
+            CameraID = value[4]
+            self.detection_count += 1
+            self.headposition = [self.headposition[0]+CameraPose_InTorsoFrame[5], self.headposition[1] + CameraPose_InTorsoFrame[4] ]
+            print "[Face Detection INFO]: Count %d, pitch %f, yaw %f" % (self.detection_count, CameraPose_InTorsoFrame[4], CameraPose_InTorsoFrame[5])
 
-    def run(self):
+    def run(self, time_out):
         """
         Loop on, wait for events until manual interruption.
         """
         self.tts.say("Face detection Start")
-        print "Starting HumanGreeter"
+        print "[Face Detection INFO] Starting Face detection"
         wait_count = 0
-        wait_time = 15
         try:
-            while wait_count < wait_time:
+            while wait_count < time_out:
                 time.sleep(1)
                 wait_count += 1
+            self.subscriber.signal.disconnect(self.connection_id)
+            self.face_detection.unsubscribe("HumanGreeter")    
             self.tts.say("Face detection End")
+            if self.detection_count != 0:
+                self.headposition = [self.headposition[0]/self.detection_count, self.headposition[1]/self.detection_count]
+            else:
+                self.headposition = [0,0]
+            print "[Face Detection INFO] Face detection end"        
             return self.headposition
         except KeyboardInterrupt:
             print "Interrupted by user, stopping HumanGreeter"
             self.face_detection.unsubscribe("HumanGreeter")
-            #self.motion_service.setStiffnesses("Head", 1.0)
-            #stop
             sys.exit(0)
 
 
@@ -125,4 +113,4 @@ if __name__ == "__main__":
         sys.exit(1)
 
     human_greeter = HumanGreeter(app)
-    human_greeter.run()
+    human_greeter.run(10)

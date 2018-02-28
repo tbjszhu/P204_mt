@@ -1,7 +1,7 @@
 from ConfigParser import ConfigParser
 import os
 
-CONF_DIR = "/home/user/P204/nao_xaal/"
+CONF_DIR = "/home/user/P204/mt_nao_xaal/"
 CONF_NAME = "nao_xaal.conf"
 
 def getConfigFile():
