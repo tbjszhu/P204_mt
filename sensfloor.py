@@ -6,7 +6,6 @@ import math
 class Sensfloor():
     
     def __init__(self, engine):
-        #threading.Thread.__init__(self)
         self.engine = engine
         self.engine.add_rx_handler(self.parse_msg)
         self.cpos = []

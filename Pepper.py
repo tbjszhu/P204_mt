@@ -1,12 +1,6 @@
 #!/usr/bin/python
 
 import rospy
-from std_msgs.msg import String
-from geometry_msgs.msg import Twist
-from naoqi_bridge_msgs.msg import *
-import actionlib
-from std_srvs.srv import Empty
-
 from naoqi import ALProxy
 import qi
 import argparse
@@ -27,12 +21,16 @@ class Pepper:
         
         self.x_org = 3.5
         self.y_org = 6.5
-        self.dist_person = 0.5        
+        self.dist_person = 1        
         
         self.ip = "10.77.3.19"
         self.port = 9559
         self.session = qi.Session()       
         self.connectPepper(self.ip, self.port)
+        self.changeAutonomousLife('disabled')
+        self.generateProxy()
+        self.postureInit()
+        self.say("Detection Start")
         
     def connectPepper(self, ip, port):
         try:
@@ -43,7 +41,7 @@ class Pepper:
             
     def generateProxy(self):
 
-        self.tts = ALProxy("ALTextToSpeech", self.ip, self.port)
+        self.tts = self.session.service("ALTextToSpeech")
         self.navigation_service = self.session.service("ALNavigation")
         self.motion_service = self.session.service("ALMotion")
         self.posture_service = self.session.service("ALRobotPosture")
@@ -66,11 +64,16 @@ class Pepper:
         else:
             distance = 0
         direction = -(position[1])
-        self.motion_service.moveTo(0.5, 0, 0) #walkout from init point to avoid the obstacle
+        # walkout from init point to avoid the obstacle
+        self.motion_service.moveTo(0.5, 0, 0) 
         time.sleep(1)
+        
+        # reach the falling position
         self.motion_service.moveTo(0, 0, direction)
+        # Wait the body of the robot stable
         time.sleep(1)
-        self.motion_service.moveTo(distance, 0, 0)  
+        self.motion_service.moveTo(distance, 0, 0)
+        time.sleep(2)   
     
     def returnToInitPosition(self, position):
         if position[0] >= self.dist_person:
@@ -109,10 +112,7 @@ class Pepper:
         times      = [[1.0,  6.0, 11.0, 16.0, 18.0], [5.0, 11.0]]
         isAbsolute = True
         # With _async=True, angleInterpolation become non-blocking
-        self.motion_service.angleInterpolation(names, angleLists, times, isAbsolute, _async=True)
-        #self.motion_service.setStiffnesses("Head", 0.0)
-        #taskList = self.motion_service.getTaskList()
-        #self.motion_service.killTask(taskList[0][1])    
+        self.motion_service.angleInterpolation(names, angleLists, times, isAbsolute, _async=True)  
         try:
             # Initialize qi framework.
             connection_url = "tcp://" + self.ip + ":" + str(self.port)
@@ -129,14 +129,6 @@ class Pepper:
         person_state = self.speechdetector.speechDetect()
         return person_state
         
-    def verifyPersonState(self, timeout):
-        rospy.loginfo("NAO will verify person state")
-        self.say(self.check_str)
-        self.response(timeout,["no","yes"])
-        if self.words[0] =="yes" and self.confidence_values[0] > 0.4 : 
-            self.verifyState = 1
-        else :
-            self.verifyState = 2
             
     def speakToPersonDetected(self, words):
         if (self.human_greeter.headposition  != []):
@@ -150,48 +142,5 @@ class Pepper:
             self.tts.say(str(words))            
 
     def say(self, words):
-        self.tts.say(str(words))        
-    
-    def response(self, timeout, words):
-        self.resetVerifyState()
-        
-        client = actionlib.SimpleActionClient('speech_vocabulary_action', SetSpeechVocabularyAction)
-        client.wait_for_server()
-        goal = SetSpeechVocabularyGoal(words)
-        rospy.sleep(1)
-
-        client.send_goal(goal)
-        client.wait_for_result()
-        rospy.sleep(1)
-
-        rospy.Subscriber("/word_recognized", WordRecognized, self.hearCallback)
-        rospy.wait_for_service('start_recognition')
-        startRecognition = rospy.ServiceProxy('start_recognition', Empty)
-        startRecognition()
-        
-        count = 0
-        while(not self.verifyState):
-            rospy.sleep(5)
-            count += 1
-            if(timeout != 0) and (count > timeout):
-                rospy.loginfo("wait person response timeout")
-                break
-        
-        stopRecognition = rospy.ServiceProxy('stop_recognition',Empty)
-        stopRecognition()
-
-
-    def hearCallback(self, data):
-        print "class NAO hearCallback"
-        print data.words
-        print data.confidence_values
-        self.words=data.words
-        self.confidence_values=data.confidence_values
-
-
-    def getVerifyState(self):
-        return self.verifyState
-
-    def resetVerifyState(self):
-        self.verifyState = 0
+        self.tts.say(str(words))  
             
