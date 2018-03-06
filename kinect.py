@@ -13,7 +13,6 @@ class Kinect(threading.Thread):
         rospy.init_node('kinect', anonymous=True, disable_signals=True)
         self.threadName = "kinect" 
         self.listener = tf.TransformListener()
-        self.rate = rospy.Rate(0.5)
         self.distance = 1
         self.x_org = 2.75 #x axis from map(sensfloor)
         self.y_org = 1.10 #y axis from map(sensfloor)
@@ -23,13 +22,10 @@ class Kinect(threading.Thread):
         self.fallEvent = []
         self.headPosition = []
         
-        #self.temp = 0
-        
     def setEvent(self, event):
         self.fallEvent = event
         
     def fallDetectionPourChaquePersonne(self, pid):
-        #print "detect for person_id: " + str(pid)
         if (not self.fallEvent.is_set()):
             try:
                 (trans1, rot1) = self.listener.lookupTransform('/openni_depth_frame', '/neck_'+str(pid), rospy.Time(0))
@@ -42,8 +38,7 @@ class Kinect(threading.Thread):
                     #self.temp = self.headPosition[1]  
                 self.distance = abs(trans1[2]-trans2[2])          
             except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
-                pass#continue
-            #self.rate.sleep()
+                pass
                 
             if (self.distance < 0.15):
                 pass
@@ -54,8 +49,6 @@ class Kinect(threading.Thread):
         self.resetDistance()
         i = 1
         while True:
-            #detectionPersonnel = threading.Thread(target=self.fallDetectionPourChaquePersonne, args=(self.fallEvent,i), name="sensfloor")
-            #detectionPersonnel.start()
             self.fallDetectionPourChaquePersonne(i)
             if (not self.fallEvent.is_set()):
                 if (self.fallflag):
@@ -71,21 +64,7 @@ class Kinect(threading.Thread):
             else:
                 i = i + 1
 
-        print "[Kinect INFO] fall detection end"                
-                        
-        '''while self.distance > 0.15:
-            #print "distance h of neck and hip ", self.distance
-            try:
-                (trans1, rot1) = self.listener.lookupTransform('/openni_depth_frame', '/neck_1', rospy.Time(0))
-                (trans2, rot2) = self.listener.lookupTransform('/openni_depth_frame', '/left_hip_1', rospy.Time(0))    
-                self.distance = abs(trans1[2]-trans2[2])
-            
-            except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
-                continue
-
-            self.rate.sleep()'''
-           
-        
+        print "[Kinect INFO] fall detection end" 
 
     def getHeadPosition(self): 
         if self.fallflag == True:

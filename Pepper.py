@@ -16,12 +16,9 @@ class Pepper:
     def __init__(self, controller):
         #rospy.init_node('pepper', anonymous=True, disable_signals=True) # disable_signals makes the ctrl+c works
         self.controller = controller
-        self.check_str = "Are you alright? "
-        self.verifyState = 0 # 0 no answer, 1 for good situation, 2 for bad situation
-        
         self.x_org = 3.5
         self.y_org = 6.5
-        self.dist_person = 1        
+        self.distPerson = 1        
         
         self.ip = "10.77.3.19"
         self.port = 9559
@@ -59,8 +56,8 @@ class Pepper:
         
     def moveToPerson(self, position):        
         #flag = self.motion_service.moveTo(x_distance, y_distance, theta)
-        if position[0] >= self.dist_person:
-            distance = position[0] - self.dist_person # retain the distance with the person
+        if position[0] >= self.distPerson:
+            distance = position[0] - self.distPerson # retain the distance with the person
         else:
             distance = 0
         direction = -(position[1])
@@ -76,8 +73,8 @@ class Pepper:
         time.sleep(2)   
     
     def returnToInitPosition(self, position):
-        if position[0] >= self.dist_person:
-            distance = position[0] - self.dist_person # retain the distance with the person
+        if position[0] >= self.distPerson:
+            distance = position[0] - self.distPerson # retain the distance with the person
         else:
             position[0] = 0
         direction = -(position[1])    
